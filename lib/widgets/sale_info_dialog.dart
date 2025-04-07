@@ -9,6 +9,20 @@ class SaleInfoDialog extends StatelessWidget {
     required this.sale,
   });
 
+  String _formatItems(List<String> items) {
+    // Crear un Map para contar los items
+    final Map<String, int> itemCount = {};
+    for (var item in items) {
+      itemCount[item] = (itemCount[item] ?? 0) + 1;
+    }
+
+    // Convertir el Map a una lista formateada
+    return itemCount.entries
+        .map((entry) =>
+            entry.value > 1 ? '${entry.key} (x${entry.value})' : entry.key)
+        .join(', ');
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -23,7 +37,7 @@ class SaleInfoDialog extends StatelessWidget {
                 '${sale.timestamp.day}/${sale.timestamp.month}/${sale.timestamp.year}'),
             _buildInfoSection('Hora',
                 '${sale.timestamp.hour}:${sale.timestamp.minute.toString().padLeft(2, '0')}'),
-            _buildInfoSection('Artículos', sale.items.join(', ')),
+            _buildInfoSection('Artículos', _formatItems(sale.items)),
             _buildInfoSection('Método de Pago', sale.paymentMethod),
             _buildInfoSection('Ubicación', sale.location),
             if (sale.client != null) _buildInfoSection('Cliente', sale.client!),

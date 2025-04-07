@@ -19,8 +19,15 @@ class PriceScreen extends StatefulWidget {
 
 class _PriceScreenState extends State<PriceScreen> {
   String amount = '';
-  bool includeTax = false;
+  late bool includeTax;
   static const double TAX_RATE = 0.0825; // 8.25%
+
+  @override
+  void initState() {
+    super.initState();
+    // Inicializar includeTax basado en el método de pago
+    includeTax = widget.paymentMethod != 'Efectivo';
+  }
 
   void addDigit(String digit) {
     setState(() {
