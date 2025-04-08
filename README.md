@@ -7,7 +7,7 @@ This is an app for a local business. It's a point of sale app that allows the us
 - Filter sales by payment method, location and date range
 
 
-Git update #2
+Git commit #3
 
 - Made that, by default, every payment method (except cash) has the sales tax option as “on”. 
 - Fixed bug where the weekly sales wouldnt show when filtered.
