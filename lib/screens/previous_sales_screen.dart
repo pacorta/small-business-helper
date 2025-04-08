@@ -6,6 +6,7 @@ import '../services/sale_service.dart';
 import '../services/analytics_service.dart';
 import '../widgets/sales_analytics_card.dart';
 import '../widgets/sale_info_dialog.dart';
+import '../widgets/date_range_selector.dart';
 
 class PreviousSalesScreen extends StatefulWidget {
   const PreviousSalesScreen({super.key});
@@ -24,12 +25,17 @@ class _PreviousSalesScreenState extends State<PreviousSalesScreen> {
   Map<String, bool> expandedDays =
       {}; // Para controlar qué días están expandidos
 
-  final List<String> _timeFilterOptions = [
-    'Todos',
-    'Hoy',
-    'Esta semana',
-    'Este mes',
-  ];
+  List<String> get _timeFilterOptions {
+    final currentYear = DateTime.now().year;
+    return [
+      'Todos',
+      'Hoy',
+      'Esta semana',
+      'Este mes',
+      '${currentYear - 1}', // Año anterior
+      '${currentYear.toString()} hasta hoy', // Año actual
+    ];
+  }
 
   @override
   void initState() {
@@ -48,9 +54,9 @@ class _PreviousSalesScreenState extends State<PreviousSalesScreen> {
 
   List<Sale> _getFilteredSales() {
     List<Sale> filteredSales = List.from(allSales);
+    final now = DateTime.now();
 
     if (selectedPeriod != 'Todos') {
-      final now = DateTime.now();
       switch (selectedPeriod) {
         case 'Hoy':
           filteredSales = filteredSales.where((sale) {
@@ -71,13 +77,19 @@ class _PreviousSalesScreenState extends State<PreviousSalesScreen> {
                 sale.timestamp.month == now.month;
           }).toList();
           break;
-        case 'Fechas personalizadas':
-          if (customDateRange != null) {
+        default:
+          // Manejo dinámico de años
+          final selectedYear = int.tryParse(selectedPeriod);
+          if (selectedYear != null) {
+            final startDate = DateTime(selectedYear, 1, 1);
+            final endDate = selectedYear == now.year
+                ? now // Si es el año actual, hasta hoy
+                : DateTime(selectedYear, 12, 31, 23, 59,
+                    59); // Si es año anterior, hasta fin de año
+
             filteredSales = filteredSales.where((sale) {
-              return sale.timestamp.isAfter(customDateRange!.start
-                      .subtract(const Duration(days: 1))) &&
-                  sale.timestamp.isBefore(
-                      customDateRange!.end.add(const Duration(days: 1)));
+              return sale.timestamp.isAfter(startDate) &&
+                  sale.timestamp.isBefore(endDate);
             }).toList();
           }
           break;
@@ -104,31 +116,29 @@ class _PreviousSalesScreenState extends State<PreviousSalesScreen> {
   }
 
   Future<void> _showDateRangePicker() async {
-    final DateTimeRange? picked = await showDateRangePicker(
+    showModalBottomSheet(
       context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Colors.purple,
-              onPrimary: Colors.white,
-              surface: Colors.purple.shade50,
-              onSurface: Colors.purple.shade700,
-            ),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.7,
+          child: DateRangeSelector(
+            initialDateRange: customDateRange,
+            onDateRangeSelected: (range) {
+              setState(() {
+                customDateRange = range;
+                selectedPeriod = 'Rango';
+              });
+              Navigator.pop(context);
+            },
           ),
-          child: child!,
-        );
-      },
+        ),
+      ),
     );
-
-    if (picked != null) {
-      setState(() {
-        customDateRange = picked;
-        selectedPeriod = 'Rango';
-      });
-    }
   }
 
   void _showFilterDialog() {
@@ -162,35 +172,18 @@ class _PreviousSalesScreenState extends State<PreviousSalesScreen> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: [
-                    ..._timeFilterOptions.map((period) {
-                      return FilterChip(
-                        selected: selectedPeriod == period,
-                        label: Text(period),
-                        onSelected: (selected) {
-                          setState(() {
-                            selectedPeriod = period;
-                            if (!selected) customDateRange = null;
-                          });
-                          this.setState(() {});
-                        },
-                      );
-                    }),
-                    // Chip especial para rango de fechas
-                    FilterChip(
-                      selected: selectedPeriod == 'Rango',
-                      label: Text(
-                        customDateRange != null
-                            ? '${DateFormat('d/M/y').format(customDateRange!.start)} - ${DateFormat('d/M/y').format(customDateRange!.end)}'
-                            : 'Rango de fechas',
-                      ),
-                      onSelected: (_) {
-                        Navigator.pop(context);
-                        _showDateRangePicker();
+                  children: _timeFilterOptions.map((period) {
+                    return FilterChip(
+                      selected: selectedPeriod == period,
+                      label: Text(period),
+                      onSelected: (selected) {
+                        setState(() {
+                          selectedPeriod = selected ? period : 'Todos';
+                        });
+                        this.setState(() {});
                       },
-                      avatar: const Icon(Icons.date_range, size: 18),
-                    ),
-                  ],
+                    );
+                  }).toList(),
                 ),
                 _buildFilterSection(
                   'Método de pago',
@@ -460,5 +453,14 @@ class _PreviousSalesScreenState extends State<PreviousSalesScreen> {
       context: context,
       builder: (context) => SaleInfoDialog(sale: sale),
     );
+  }
+
+  Future<void> _updateSalesForDateRange(DateTimeRange range) async {
+    final salesInRange = await SaleService.getSalesByDateRange(range);
+    setState(() {
+      allSales = salesInRange;
+      selectedPeriod = 'Rango';
+      customDateRange = range;
+    });
   }
 }

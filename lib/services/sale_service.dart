@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/sale.dart';
 
@@ -70,5 +71,30 @@ class SaleService {
         .toList()
       ..sort((a, b) =>
           b.timestamp.compareTo(a.timestamp)); // Ordenar por fecha descendente
+  }
+
+  // Obtener ventas por rango de fechas
+  static Future<List<Sale>> getSalesByDateRange(DateTimeRange range) async {
+    final allSales = await getAllSales();
+
+    // Ajustamos el rango para incluir todo el día
+    final startDate =
+        DateTime(range.start.year, range.start.month, range.start.day);
+    final endDate =
+        DateTime(range.end.year, range.end.month, range.end.day, 23, 59, 59);
+
+    return allSales.where((sale) {
+      // Normalizamos la fecha de la venta a medianoche para comparación consistente
+      final saleDate = DateTime(
+        sale.timestamp.year,
+        sale.timestamp.month,
+        sale.timestamp.day,
+      );
+
+      // Verificamos si la fecha de la venta está dentro del rango (inclusive)
+      return saleDate.millisecondsSinceEpoch >=
+              startDate.millisecondsSinceEpoch &&
+          saleDate.millisecondsSinceEpoch <= endDate.millisecondsSinceEpoch;
+    }).toList();
   }
 }

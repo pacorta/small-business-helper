@@ -29,7 +29,7 @@ Look back at all previous sales
 ![filters](https://github.com/user-attachments/assets/02d85fc1-d879-4fff-bbbe-542cc82c3b6e)
 Filter out for specific sales you want to see, based on date, payment method, or location.
 
-Git commit #4
+Git commit #4.5
 
 - Updated README.md File
 - Made that, by default, every payment method (except cash) has the sales tax option as “on”. 

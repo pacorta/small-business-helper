@@ -18,6 +18,26 @@ class SalesAnalyticsCard extends StatefulWidget {
 class _SalesAnalyticsCardState extends State<SalesAnalyticsCard> {
   bool _isExpanded = false;
 
+  String _formatDateRange(String filterText) {
+    // Si el texto contiene fechas en formato ISO, las convertimos a un formato más amigable
+    final RegExp dateRangePattern =
+        RegExp(r'(\d{4}-\d{2}-\d{2}).*?(\d{4}-\d{2}-\d{2})');
+    final match = dateRangePattern.firstMatch(filterText);
+
+    if (match != null) {
+      final startDate = DateTime.parse(match.group(1)!);
+      final endDate = DateTime.parse(match.group(2)!);
+      return '${startDate.day}/${startDate.month}/${startDate.year} - ${endDate.day}/${endDate.month}/${endDate.year}';
+    }
+
+    // Si es un filtro predefinido, quitamos el "Mostrando: " si existe
+    if (filterText.startsWith('Mostrando: ')) {
+      filterText = filterText.substring('Mostrando: '.length);
+    }
+
+    return filterText;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -72,7 +92,7 @@ class _SalesAnalyticsCardState extends State<SalesAnalyticsCard> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            widget.activeFilters!,
+                            'Mostrando: ${_formatDateRange(widget.activeFilters!)}',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.purple.shade700,
