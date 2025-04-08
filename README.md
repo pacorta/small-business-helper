@@ -1,16 +1,17 @@
-# marthasart
+This is an app for a local business. It's a point of sale app that allows the user to register sales and see analytics.
 
-A new Flutter project.
+## Features
 
-## Getting Started
+- Register sales
+- See analytics
+- Filter sales by payment method, location and date range
 
-This project is a starting point for a Flutter application.
 
-A few resources to get you started if this is your first Flutter project:
+Git update #2
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- Made that, by default, every payment method (except cash) has the sales tax option as “on”. 
+- Fixed bug where the weekly sales wouldnt show when filtered.
+- Fixed bug where, if the user selected many items, the screen would overflow in the confirm_sale_screen.dart. Now user can select as many items as they want.
+- Added filters for sale locations.
+- Re-arranged the previous sales screen for more intuitive UI.
+- Added custom date range filter.

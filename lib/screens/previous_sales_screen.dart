@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:collection/collection.dart';
 import '../models/sale.dart';
 import '../services/sale_service.dart';
 import '../services/analytics_service.dart';
@@ -13,10 +15,14 @@ class PreviousSalesScreen extends StatefulWidget {
 }
 
 class _PreviousSalesScreenState extends State<PreviousSalesScreen> {
-  List<Sale> _sales = [];
-  bool _isLoading = true;
-  String? _selectedPaymentMethod;
-  String _timeFilter = 'Todos';
+  List<Sale> allSales = [];
+  String selectedPeriod = 'Todos';
+  Set<String> selectedPaymentMethods = {'Todos'};
+  Set<String> selectedLocations = {'Todos'};
+  DateTimeRange? customDateRange;
+  bool isLoading = true;
+  Map<String, bool> expandedDays =
+      {}; // Para controlar qué días están expandidos
 
   final List<String> _timeFilterOptions = [
     'Todos',
@@ -32,40 +38,61 @@ class _PreviousSalesScreenState extends State<PreviousSalesScreen> {
   }
 
   Future<void> _loadSales() async {
-    setState(() => _isLoading = true);
+    setState(() => isLoading = true);
     final sales = await SaleService.getAllSales();
     setState(() {
-      _sales = sales;
-      _isLoading = false;
+      allSales = sales;
+      isLoading = false;
     });
   }
 
   List<Sale> _getFilteredSales() {
-    var filteredSales = _sales;
+    List<Sale> filteredSales = List.from(allSales);
 
-    final now = DateTime.now();
-    switch (_timeFilter) {
-      case 'Hoy':
-        filteredSales = filteredSales.where((sale) {
-          return sale.timestamp.year == now.year &&
-              sale.timestamp.month == now.month &&
-              sale.timestamp.day == now.day;
-        }).toList();
-      case 'Esta semana':
-        final weekStart = now.subtract(Duration(days: now.weekday - 1));
-        filteredSales = filteredSales.where((sale) {
-          return sale.timestamp.isAfter(weekStart);
-        }).toList();
-      case 'Este mes':
-        filteredSales = filteredSales.where((sale) {
-          return sale.timestamp.year == now.year &&
-              sale.timestamp.month == now.month;
-        }).toList();
+    if (selectedPeriod != 'Todos') {
+      final now = DateTime.now();
+      switch (selectedPeriod) {
+        case 'Hoy':
+          filteredSales = filteredSales.where((sale) {
+            return sale.timestamp.year == now.year &&
+                sale.timestamp.month == now.month &&
+                sale.timestamp.day == now.day;
+          }).toList();
+          break;
+        case 'Esta semana':
+          final weekStart = now.subtract(Duration(days: now.weekday - 1));
+          filteredSales = filteredSales
+              .where((sale) => sale.timestamp.isAfter(weekStart))
+              .toList();
+          break;
+        case 'Este mes':
+          filteredSales = filteredSales.where((sale) {
+            return sale.timestamp.year == now.year &&
+                sale.timestamp.month == now.month;
+          }).toList();
+          break;
+        case 'Fechas personalizadas':
+          if (customDateRange != null) {
+            filteredSales = filteredSales.where((sale) {
+              return sale.timestamp.isAfter(customDateRange!.start
+                      .subtract(const Duration(days: 1))) &&
+                  sale.timestamp.isBefore(
+                      customDateRange!.end.add(const Duration(days: 1)));
+            }).toList();
+          }
+          break;
+      }
     }
 
-    if (_selectedPaymentMethod != null) {
+    if (!selectedPaymentMethods.contains('Todos')) {
       filteredSales = filteredSales
-          .where((sale) => sale.paymentMethod == _selectedPaymentMethod)
+          .where((sale) => selectedPaymentMethods.contains(sale.paymentMethod))
+          .toList();
+    }
+
+    if (!selectedLocations.contains('Todos')) {
+      filteredSales = filteredSales
+          .where((sale) => selectedLocations.contains(sale.location))
           .toList();
     }
 
@@ -73,102 +100,176 @@ class _PreviousSalesScreenState extends State<PreviousSalesScreen> {
   }
 
   List<String> _getAvailablePaymentMethods() {
-    return _sales.map((sale) => sale.paymentMethod).toSet().toList();
+    return allSales.map((sale) => sale.paymentMethod).toSet().toList();
+  }
+
+  Future<void> _showDateRangePicker() async {
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Colors.purple,
+              onPrimary: Colors.white,
+              surface: Colors.purple.shade50,
+              onSurface: Colors.purple.shade700,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        customDateRange = picked;
+        selectedPeriod = 'Rango';
+      });
+    }
   }
 
   void _showFilterDialog() {
     showModalBottomSheet(
       context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            return Container(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Filtros',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width,
+            minWidth: MediaQuery.of(context).size.width,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Filtros',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Período',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ..._timeFilterOptions.map((period) {
+                      return FilterChip(
+                        selected: selectedPeriod == period,
+                        label: Text(period),
+                        onSelected: (selected) {
+                          setState(() {
+                            selectedPeriod = period;
+                            if (!selected) customDateRange = null;
+                          });
+                          this.setState(() {});
+                        },
+                      );
+                    }),
+                    // Chip especial para rango de fechas
+                    FilterChip(
+                      selected: selectedPeriod == 'Rango',
+                      label: Text(
+                        customDateRange != null
+                            ? '${DateFormat('d/M/y').format(customDateRange!.start)} - ${DateFormat('d/M/y').format(customDateRange!.end)}'
+                            : 'Rango de fechas',
+                      ),
+                      onSelected: (_) {
+                        Navigator.pop(context);
+                        _showDateRangePicker();
+                      },
+                      avatar: const Icon(Icons.date_range, size: 18),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Período',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: _timeFilterOptions.map((filter) {
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
-                          child: FilterChip(
-                            label: Text(filter),
-                            selected: _timeFilter == filter,
-                            onSelected: (selected) {
-                              setModalState(() {
-                                setState(() {
-                                  _timeFilter = selected ? filter : 'Todos';
-                                });
-                              });
-                            },
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Método de pago',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        FilterChip(
-                          label: const Text('Todos'),
-                          selected: _selectedPaymentMethod == null,
-                          onSelected: (selected) {
-                            setModalState(() {
-                              setState(() {
-                                _selectedPaymentMethod = null;
-                              });
-                            });
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        ..._getAvailablePaymentMethods().map((method) {
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8.0),
-                            child: FilterChip(
-                              label: Text(method),
-                              selected: _selectedPaymentMethod == method,
-                              onSelected: (selected) {
-                                setModalState(() {
-                                  setState(() {
-                                    _selectedPaymentMethod =
-                                        selected ? method : null;
-                                  });
-                                });
-                              },
-                            ),
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+                  ],
+                ),
+                _buildFilterSection(
+                  'Método de pago',
+                  _getAvailablePaymentMethods().map((method) {
+                    return FilterChip(
+                      selected: selectedPaymentMethods.contains(method),
+                      label: Text(method),
+                      onSelected: (selected) {
+                        setState(() {
+                          _toggleFilter(selectedPaymentMethods, method);
+                        });
+                        this.setState(() {});
+                      },
+                    );
+                  }).toList(),
+                ),
+                _buildFilterSection(
+                  'Ubicación',
+                  _getUniqueLocations().map((location) {
+                    return FilterChip(
+                      selected: selectedLocations.contains(location),
+                      label: Text(location),
+                      onSelected: (selected) {
+                        setState(() {
+                          _toggleFilter(selectedLocations, location);
+                        });
+                        this.setState(() {});
+                      },
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
+  }
+
+  Widget _buildFilterSection(String title, List<Widget> chips) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: chips,
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Set<String> _getUniqueLocations() {
+    final locations = {'Todos'};
+    locations.addAll(allSales.map((sale) => sale.location));
+    return locations;
+  }
+
+  void _toggleFilter(Set<String> filterSet, String value) {
+    if (value == 'Todos') {
+      filterSet.clear();
+      filterSet.add('Todos');
+    } else {
+      filterSet.remove('Todos');
+      if (filterSet.contains(value)) {
+        filterSet.remove(value);
+        if (filterSet.isEmpty) {
+          filterSet.add('Todos');
+        }
+      } else {
+        filterSet.add(value);
+      }
+    }
   }
 
   // Nuevo método para calcular el total de ventas filtradas
@@ -176,11 +277,34 @@ class _PreviousSalesScreenState extends State<PreviousSalesScreen> {
     return _getFilteredSales().fold(0, (sum, sale) => sum + sale.price);
   }
 
+  String _getActiveFiltersDescription() {
+    List<String> filters = [];
+
+    if (selectedPeriod == 'Fechas personalizadas' && customDateRange != null) {
+      final DateFormat formatter = DateFormat('d/M/y');
+      filters.add(
+          '${formatter.format(customDateRange!.start)} - ${formatter.format(customDateRange!.end)}');
+    } else if (selectedPeriod != 'Todos') {
+      filters.add(selectedPeriod);
+    }
+
+    if (!selectedPaymentMethods.contains('Todos')) {
+      filters.add(selectedPaymentMethods.join(', '));
+    }
+
+    if (!selectedLocations.contains('Todos')) {
+      filters.add(selectedLocations.join(', '));
+    }
+
+    if (filters.isEmpty) {
+      return '';
+    }
+
+    return 'Mostrando: ${filters.join(' • ')}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final filteredSales = _getFilteredSales();
-    final totalAmount = _getFilteredTotal();
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Ventas Anteriores'),
@@ -195,242 +319,146 @@ class _PreviousSalesScreenState extends State<PreviousSalesScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Añadir el widget de análisis al principio
-          if (!_isLoading && _sales.isNotEmpty)
-            SalesAnalyticsCard(
-              analytics: AnalyticsService.calculateAnalytics(filteredSales),
-            ),
-          // Mostrar chips de filtros activos y total
-          if (_timeFilter != 'Todos' || _selectedPaymentMethod != null) ...[
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      if (_timeFilter != 'Todos')
-                        Chip(
-                          label: Text(_timeFilter),
-                          onDeleted: () {
-                            setState(() {
-                              _timeFilter = 'Todos';
-                            });
-                          },
-                        ),
-                      if (_selectedPaymentMethod != null)
-                        Chip(
-                          label: Text(_selectedPaymentMethod!),
-                          onDeleted: () {
-                            setState(() {
-                              _selectedPaymentMethod = null;
-                            });
-                          },
-                        ),
-                    ],
-                  ),
-                  // Mostrar el total de ventas filtradas
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.purple.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.purple.shade100),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              children: [
+                // Primero las ventas agrupadas por día
+                _buildSalesList(),
+                // Después el resumen
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: SalesAnalyticsCard(
+                    analytics: AnalyticsService.calculateAnalytics(
+                      _getFilteredSales(),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Total${_timeFilter != 'Todos' ? ' - ${_timeFilter.toLowerCase()}' : ''}'
-                          '${_selectedPaymentMethod != null ? ' (${_selectedPaymentMethod})' : ''}:',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '\$${totalAmount.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.purple,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${filteredSales.length} venta${filteredSales.length != 1 ? 's' : ''}',
-                          style: TextStyle(
-                            color: Colors.grey.shade700,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
+                    activeFilters: _getActiveFiltersDescription(),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 16),
+              ],
             ),
-          ],
-          // Lista de ventas
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : filteredSales.isEmpty
-                    ? const Center(
-                        child:
-                            Text('No hay ventas que coincidan con los filtros'),
-                      )
-                    : ListView.builder(
-                        itemCount: _groupSalesByDay().length,
-                        itemBuilder: (context, index) {
-                          final daySales =
-                              _groupSalesByDay().values.elementAt(index);
-                          final date = _groupSalesByDay().keys.elementAt(index);
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Text(
-                                  date,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              ListView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: daySales.length,
-                                itemBuilder: (context, index) {
-                                  final sale = daySales[index];
-                                  return _buildSaleCard(sale);
-                                },
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Text(
-                                  'Total del día: \$${_getDayTotal(daySales).toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-          ),
-        ],
-      ),
     );
   }
 
-  Map<String, List<Sale>> _groupSalesByDay() {
-    final Map<String, List<Sale>> grouped = {};
+  Widget _buildSalesList() {
+    // Agrupar ventas por día
+    final salesByDay = groupBy(
+      _getFilteredSales(),
+      (Sale sale) => DateFormat('yyyy-MM-dd').format(sale.timestamp),
+    );
 
-    for (var sale in _getFilteredSales()) {
-      final date = _formatDate(sale.timestamp);
-      if (!grouped.containsKey(date)) {
-        grouped[date] = [];
-      }
-      grouped[date]!.add(sale);
-    }
+    return Column(
+      children: salesByDay.entries.map((entry) {
+        final date = DateTime.parse(entry.key);
+        final sales = entry.value;
+        final totalForDay = sales.fold<double>(
+          0,
+          (sum, sale) => sum + sale.price,
+        );
 
-    return grouped;
-  }
-
-  double _getDayTotal(List<Sale> daySales) {
-    return daySales.fold(0, (sum, sale) => sum + sale.price);
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
-
-  String _formatTime(DateTime dateTime) {
-    return '${dateTime.hour.toString().padLeft(2, '0')}:'
-        '${dateTime.minute.toString().padLeft(2, '0')}';
-  }
-
-  Widget _buildSaleCard(Sale sale) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        // Hora
-        leading: Container(
-          width: 50,
-          alignment: Alignment.center,
-          child: Text(
-            '${sale.timestamp.hour}:${sale.timestamp.minute.toString().padLeft(2, '0')}',
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 16,
-            ),
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            children: [
+              // Encabezado del día (siempre visible)
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    expandedDays[entry.key] =
+                        !(expandedDays[entry.key] ?? false);
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Text(
+                        DateFormat('d/M/yyyy').format(date),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '\$${totalForDay.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        expandedDays[entry.key] ?? false
+                            ? Icons.keyboard_arrow_up
+                            : Icons.keyboard_arrow_down,
+                        color: Colors.purple,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Ventas del día (expandibles)
+              if (expandedDays[entry.key] ?? false)
+                Column(
+                  children: sales.map((sale) => _buildSaleItem(sale)).toList(),
+                ),
+            ],
           ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildSaleItem(Sale sale) {
+    return InkWell(
+      onTap: () => _showSaleDetails(sale),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: Colors.grey.shade200)),
         ),
-        // Ubicación
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
+        padding: const EdgeInsets.all(16),
+        child: Row(
           children: [
+            Text(
+              DateFormat('HH:mm').format(sale.timestamp),
+              style: const TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(width: 16),
             Icon(
               Icons.location_on,
               size: 16,
               color: Colors.purple.shade300,
             ),
             const SizedBox(width: 4),
-            Flexible(
+            Expanded(
               child: Text(
                 sale.location,
-                style: TextStyle(
-                  color: Colors.grey[700],
-                  fontSize: 16,
-                ),
-                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: Colors.purple.shade700),
               ),
             ),
-          ],
-        ),
-        // Precio e ícono de info
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
             Text(
               '\$${sale.price.toStringAsFixed(2)}',
               style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
                 color: Colors.green,
+                fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(width: 8),
-            IconButton(
-              constraints: const BoxConstraints(),
-              padding: EdgeInsets.zero,
-              icon: const Icon(
-                Icons.info_outline,
-                size: 20,
-                color: Colors.purple,
-              ),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => SaleInfoDialog(sale: sale),
-                );
-              },
-            ),
+            const Icon(Icons.info_outline, color: Colors.grey, size: 20),
           ],
         ),
       ),
+    );
+  }
+
+  void _showSaleDetails(Sale sale) {
+    showDialog(
+      context: context,
+      builder: (context) => SaleInfoDialog(sale: sale),
     );
   }
 }

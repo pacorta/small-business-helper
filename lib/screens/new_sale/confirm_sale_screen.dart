@@ -24,6 +24,7 @@ class ConfirmSaleScreen extends StatefulWidget {
 class _ConfirmSaleScreenState extends State<ConfirmSaleScreen> {
   final _commentController = TextEditingController();
   final _clientController = TextEditingController();
+  bool _isItemListExpanded = true;
 
   @override
   void dispose() {
@@ -34,189 +35,268 @@ class _ConfirmSaleScreenState extends State<ConfirmSaleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Crear un Map para contar los items
     final Map<String, int> itemCount = {};
     for (var item in widget.selectedItems) {
       itemCount[item] = (itemCount[item] ?? 0) + 1;
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Confirmar Venta'),
-      ),
-      body: Column(
-        children: [
-          CurrentLocationHeader(location: widget.location),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      appBar: AppBar(title: const Text('Confirmar Venta')),
+      body: SafeArea(
+        child: Column(
+          children: [
+            CurrentLocationHeader(location: widget.location),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16.0),
                 children: [
                   const Text(
                     'Resumen de la venta:',
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 20),
-                  Text(
-                    'Artículos:',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  Container(
-                    constraints: const BoxConstraints(maxHeight: 120),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade200),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: SingleChildScrollView(
+                  InkWell(
+                    onTap: () {
+                      setState(() {
+                        _isItemListExpanded = !_isItemListExpanded;
+                      });
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.purple.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: itemCount.entries.map((entry) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                              vertical: 4.0,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              children: [
+                                Text(
+                                  'Artículos (${itemCount.length})',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                                const Spacer(),
+                                Icon(
+                                  _isItemListExpanded
+                                      ? Icons.keyboard_arrow_up
+                                      : Icons.keyboard_arrow_down,
+                                  color: Colors.purple,
+                                ),
+                              ],
                             ),
-                            child: Text(
-                              entry.value > 1
-                                  ? '• ${entry.key} (x${entry.value})'
-                                  : '• ${entry.key}',
+                          ),
+                          if (_isItemListExpanded)
+                            Container(
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  top:
+                                      BorderSide(color: Colors.purple.shade100),
+                                ),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: itemCount.entries
+                                    .map((entry) => Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 4.0),
+                                          child: Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.circle,
+                                                size: 8,
+                                                color: Colors.purple,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  entry.key,
+                                                  style: const TextStyle(
+                                                      fontSize: 16),
+                                                ),
+                                              ),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 12,
+                                                  vertical: 4,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.purple.shade200,
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                child: Text(
+                                                  'x${entry.value}',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ))
+                                    .toList(),
+                              ),
                             ),
-                          );
-                        }).toList(),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  // Método de pago
-                  Text(
-                    'Método de pago:',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16.0, top: 8.0),
-                    child: Text(widget.paymentMethod),
-                  ),
-                  const SizedBox(height: 12),
-                  // Precio total
-                  Text(
-                    'Precio total:',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16.0, top: 8.0),
-                    child: Text(
-                      '\$${widget.price.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Cliente
-                  Text(
-                    'Nombre de cliente (opcional):',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _clientController,
-                    decoration: const InputDecoration(
-                      hintText: 'Agregar un nombre de cliente...',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Comentario
-                  Text(
-                    'Comentario (opcional):',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _commentController,
-                    decoration: const InputDecoration(
-                      hintText: 'Agregar un comentario...',
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLines: 2, // Reducimos a 2 líneas
-                  ),
-                  const SizedBox(height: 20),
-                  // Botones
                   Row(
                     children: [
                       Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey,
-                          ),
-                          child: const Text('Editar'),
+                        child: _buildInfoSection(
+                          'Método de pago',
+                          widget.paymentMethod,
                         ),
                       ),
-                      const SizedBox(width: 16),
                       Expanded(
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            final sale = Sale(
-                              timestamp: DateTime.now(),
-                              items: widget.selectedItems,
-                              paymentMethod: widget.paymentMethod,
-                              price: widget.price,
-                              id: DateTime.now()
-                                  .millisecondsSinceEpoch
-                                  .toString(),
-                              comment: _commentController.text.isNotEmpty
-                                  ? _commentController.text
-                                  : null,
-                              client: _clientController.text.isNotEmpty
-                                  ? _clientController.text
-                                  : null,
-                              location: widget.location,
-                            );
-
-                            try {
-                              await SaleService.saveSale(sale);
-                              if (!context.mounted) return;
-
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('¡Venta registrada con éxito!'),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
-
-                              Navigator.popUntil(
-                                  context, (route) => route.isFirst);
-                            } catch (e) {
-                              if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content:
-                                      Text('Error al guardar la venta: $e'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
+                        child: _buildInfoSection(
+                          'Precio total',
+                          '\$${widget.price.toStringAsFixed(2)}',
+                          valueStyle: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
                           ),
-                          child: const Text('Confirmar'),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 16),
+                  _buildTextField(
+                    'Nombre de cliente (opcional)',
+                    'Agregar un nombre de cliente...',
+                    _clientController,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildTextField(
+                    'Comentario (opcional)',
+                    'Agregar un comentario...',
+                    _commentController,
+                    maxLines: 2,
+                  ),
                 ],
               ),
             ),
-          ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text('Editar'),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final sale = Sale(
+                          timestamp: DateTime.now(),
+                          items: widget.selectedItems,
+                          paymentMethod: widget.paymentMethod,
+                          price: widget.price,
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          comment: _commentController.text.isNotEmpty
+                              ? _commentController.text
+                              : null,
+                          client: _clientController.text.isNotEmpty
+                              ? _clientController.text
+                              : null,
+                          location: widget.location,
+                        );
+
+                        try {
+                          await SaleService.saveSale(sale);
+                          if (!context.mounted) return;
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('¡Venta registrada con éxito!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+
+                          Navigator.popUntil(context, (route) => route.isFirst);
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error al guardar la venta: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text('Confirmar'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoSection(String label, String value,
+      {TextStyle? valueStyle}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text(value, style: valueStyle),
         ],
       ),
+    );
+  }
+
+  Widget _buildTextField(
+      String label, String hint, TextEditingController controller,
+      {int? maxLines}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: hint,
+            border: const OutlineInputBorder(),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
+          ),
+          maxLines: maxLines ?? 1,
+        ),
+      ],
     );
   }
 }
