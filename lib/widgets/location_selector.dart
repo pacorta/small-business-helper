@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/location_service.dart';
 
-class LocationSelector extends StatelessWidget {
+class LocationSelector extends StatefulWidget {
   final String? currentLocation;
   final Function(String) onLocationChanged;
 
@@ -10,6 +10,35 @@ class LocationSelector extends StatelessWidget {
     required this.currentLocation,
     required this.onLocationChanged,
   });
+
+  @override
+  State<LocationSelector> createState() => _LocationSelectorState();
+}
+
+class _LocationSelectorState extends State<LocationSelector> {
+  List<String> _locations = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocations();
+  }
+
+  Future<void> _loadLocations() async {
+    try {
+      final locations = await LocationService.getAllLocations();
+      setState(() {
+        _locations = locations;
+        _isLoading = false;
+      });
+    } catch (e) {
+      // Manejar el error apropiadamente
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,25 +64,28 @@ class LocationSelector extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: LocationService.predefinedLocations.map((location) {
-                final isSelected = location == currentLocation;
-                return FilterChip(
-                  selected: isSelected,
-                  label: Text(location),
-                  onSelected: (_) => onLocationChanged(location),
-                  selectedColor: Colors.purple.shade100,
-                  checkmarkColor: Colors.purple,
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.purple : Colors.black87,
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                );
-              }).toList(),
-            ),
+            if (_isLoading)
+              const Center(child: CircularProgressIndicator())
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _locations.map((location) {
+                  final isSelected = location == widget.currentLocation;
+                  return FilterChip(
+                    selected: isSelected,
+                    label: Text(location),
+                    onSelected: (_) => widget.onLocationChanged(location),
+                    selectedColor: Colors.purple.shade100,
+                    checkmarkColor: Colors.purple,
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.purple : Colors.black87,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  );
+                }).toList(),
+              ),
           ],
         ),
       ),

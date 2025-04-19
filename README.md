@@ -1,10 +1,30 @@
-This is an app for a local business. It's a point of sale app that allows the user to register sales and see analytics.
+This is an app for small businesses. It's a point of sale app that allows the user to register sales and see analytics.
 
 ## Features
 
 - Register sales
 - See analytics
 - Filter sales by payment method, location and date range
+- Support for multiple sale locations during each session/transaction
+
+##Architecture
+The app is built with:
+-Flutter for the frontend
+-Firebase for the backend:
+  -Firestore Database for storing sales data
+  -Firebase Auth for authentication
+
+### Firebase Configuration Steps:
+
+1. Create a new project in [Firebase Console](https://console.firebase.google.com/)
+2. Add your apps:
+   - For Android: Download `google-services.json` and place it in `android/app/`
+   - For iOS: Download `GoogleService-Info.plist` and place it in `ios/Runner/`
+3. Enable Authentication (Anonymous auth is used)
+4. Enable Firestore Database
+   - Create a database in test mode
+   - Set up your security rules
+
 
 ## Register Sales
 
@@ -38,3 +58,7 @@ Git commit #4.5
 - Added filters for sale locations.
 - Re-arranged the previous sales screen for more intuitive UI.
 - Added more date range filters.
+
+Git commit #5
+
+- Migrated from SharedPreferences to Firebase Firestore for storing sales data both in android and ios.

@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/sale.dart';
 
 class SaleService {
-  static const String _storageKey = 'sales';
+  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static const String _collection = 'sales';
 
   // Convertir Sale a JSON
   static Map<String, dynamic> _saleToJson(Sale sale) {
@@ -37,64 +39,43 @@ class SaleService {
 
   // Guardar una venta
   static Future<void> saveSale(Sale sale) async {
-    final prefs = await SharedPreferences.getInstance();
-
-    // Obtener ventas existentes
-    final String? salesJson = prefs.getString(_storageKey);
-    List<Map<String, dynamic>> sales = [];
-
-    if (salesJson != null) {
-      sales = List<Map<String, dynamic>>.from(
-        jsonDecode(salesJson),
-      );
+    try {
+      await _firestore.collection(_collection).add(sale.toFirestore());
+    } catch (e) {
+      throw 'Error al guardar la venta: $e';
     }
-
-    // Agregar nueva venta
-    sales.add(_saleToJson(sale));
-
-    // Guardar lista actualizada
-    await prefs.setString(_storageKey, jsonEncode(sales));
   }
 
   // Obtener todas las ventas
   static Future<List<Sale>> getAllSales() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? salesJson = prefs.getString(_storageKey);
+    try {
+      final querySnapshot = await _firestore
+          .collection(_collection)
+          .orderBy('timestamp', descending: true)
+          .get();
 
-    if (salesJson == null) {
-      return [];
+      return querySnapshot.docs.map((doc) => Sale.fromFirestore(doc)).toList();
+    } catch (e) {
+      throw 'Error al obtener las ventas: $e';
     }
-
-    final List<dynamic> salesList = jsonDecode(salesJson);
-    return salesList
-        .map((saleJson) => _saleFromJson(Map<String, dynamic>.from(saleJson)))
-        .toList()
-      ..sort((a, b) =>
-          b.timestamp.compareTo(a.timestamp)); // Ordenar por fecha descendente
   }
 
-  // Obtener ventas por rango de fechas
-  static Future<List<Sale>> getSalesByDateRange(DateTimeRange range) async {
-    final allSales = await getAllSales();
+  // Obtener ventas por rango de fecha
+  static Future<List<Sale>> getSalesByDateRange(
+    DateTime start,
+    DateTime end,
+  ) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_collection)
+          .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+          .where('timestamp', isLessThanOrEqualTo: Timestamp.fromDate(end))
+          .orderBy('timestamp', descending: true)
+          .get();
 
-    // Ajustamos el rango para incluir todo el día
-    final startDate =
-        DateTime(range.start.year, range.start.month, range.start.day);
-    final endDate =
-        DateTime(range.end.year, range.end.month, range.end.day, 23, 59, 59);
-
-    return allSales.where((sale) {
-      // Normalizamos la fecha de la venta a medianoche para comparación consistente
-      final saleDate = DateTime(
-        sale.timestamp.year,
-        sale.timestamp.month,
-        sale.timestamp.day,
-      );
-
-      // Verificamos si la fecha de la venta está dentro del rango (inclusive)
-      return saleDate.millisecondsSinceEpoch >=
-              startDate.millisecondsSinceEpoch &&
-          saleDate.millisecondsSinceEpoch <= endDate.millisecondsSinceEpoch;
-    }).toList();
+      return querySnapshot.docs.map((doc) => Sale.fromFirestore(doc)).toList();
+    } catch (e) {
+      throw 'Error al obtener las ventas por fecha: $e';
+    }
   }
 }

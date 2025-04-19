@@ -45,11 +45,23 @@ class _PreviousSalesScreenState extends State<PreviousSalesScreen> {
 
   Future<void> _loadSales() async {
     setState(() => isLoading = true);
-    final sales = await SaleService.getAllSales();
-    setState(() {
-      allSales = sales;
-      isLoading = false;
-    });
+    try {
+      final sales = await SaleService.getAllSales();
+      setState(() {
+        allSales = sales;
+        isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar las ventas: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      setState(() => isLoading = false);
+    }
   }
 
   List<Sale> _getFilteredSales() {
@@ -77,15 +89,23 @@ class _PreviousSalesScreenState extends State<PreviousSalesScreen> {
                 sale.timestamp.month == now.month;
           }).toList();
           break;
+        case 'Rango':
+          if (customDateRange != null) {
+            filteredSales = filteredSales.where((sale) {
+              return sale.timestamp.isAfter(customDateRange!.start) &&
+                  sale.timestamp.isBefore(
+                      customDateRange!.end.add(const Duration(days: 1)));
+            }).toList();
+          }
+          break;
         default:
           // Manejo dinámico de años
           final selectedYear = int.tryParse(selectedPeriod);
           if (selectedYear != null) {
             final startDate = DateTime(selectedYear, 1, 1);
             final endDate = selectedYear == now.year
-                ? now // Si es el año actual, hasta hoy
-                : DateTime(selectedYear, 12, 31, 23, 59,
-                    59); // Si es año anterior, hasta fin de año
+                ? now
+                : DateTime(selectedYear, 12, 31, 23, 59, 59);
 
             filteredSales = filteredSales.where((sale) {
               return sale.timestamp.isAfter(startDate) &&
@@ -456,11 +476,28 @@ class _PreviousSalesScreenState extends State<PreviousSalesScreen> {
   }
 
   Future<void> _updateSalesForDateRange(DateTimeRange range) async {
-    final salesInRange = await SaleService.getSalesByDateRange(range);
-    setState(() {
-      allSales = salesInRange;
-      selectedPeriod = 'Rango';
-      customDateRange = range;
-    });
+    setState(() => isLoading = true);
+    try {
+      final salesInRange = await SaleService.getSalesByDateRange(
+        range.start,
+        range.end.add(const Duration(days: 1)),
+      );
+      setState(() {
+        allSales = salesInRange;
+        selectedPeriod = 'Rango';
+        customDateRange = range;
+        isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar las ventas: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      setState(() => isLoading = false);
+    }
   }
 }

@@ -1,3 +1,20 @@
+//Sintaxis Clásica:  "Groovy build script" o "Groovy DSL"
+//Usa buildscript{} block
+
+//sintaxis moderna: "Kotlin DSL" o "Type-safe project accessors"
+//Usa plugins{} block
+
+//Esta es la sintaxis clásica.
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.google.gms:google-services:4.4.2'
+    }
+}
+
 allprojects {
     repositories {
         google()

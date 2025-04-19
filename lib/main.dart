@@ -1,7 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'screens/home_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+
+  // Prueba simple de Firebase
+  try {
+    // Intenta acceder a Firebase Auth
+    FirebaseAuth auth = FirebaseAuth.instance;
+    print('Firebase Auth inicializado correctamente');
+
+    // Opcional: Intenta una operación anónima
+    UserCredential userCredential = await auth.signInAnonymously();
+    print('Login anónimo exitoso: ${userCredential.user?.uid}');
+  } catch (e) {
+    print('Error al probar Firebase: $e');
+  }
+
   runApp(const MarthasArtApp());
 }
 
