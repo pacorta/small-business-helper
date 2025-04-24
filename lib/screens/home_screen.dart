@@ -3,6 +3,7 @@ import 'new_sale/select_items_screen.dart';
 import 'previous_sales_screen.dart';
 import '../services/location_service.dart';
 import '../widgets/location_selector.dart';
+import '../widgets/app_drawer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -34,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text("Martha's Art Jewelry"),
         centerTitle: true,
       ),
+      drawer: const AppDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

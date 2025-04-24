@@ -1,24 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'config_service.dart';
 
 class LocationService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static const String _collection = 'locations';
-  static const String _currentLocationKey = 'currentLocation';
+  static const String _currentLocationDoc = 'current_location';
 
   // Obtener todas las ubicaciones activas
   static Future<List<String>> getAllLocations() async {
-    try {
-      final querySnapshot = await _firestore
-          .collection(_collection)
-          .where('active', isEqualTo: true)
-          .get();
-
-      return querySnapshot.docs
-          .map((doc) => doc.data()['name'] as String)
-          .toList();
-    } catch (e) {
-      throw 'Error al obtener ubicaciones: $e';
-    }
+    return ConfigService.instance.getLocations();
   }
 
   // Agregar nueva ubicación
@@ -52,19 +42,31 @@ class LocationService {
   // Obtener ubicación actual (temporal, usando SharedPreferences por ahora)
   static Future<String?> getCurrentLocation() async {
     try {
-      final locations = await getAllLocations();
-      return locations.isNotEmpty ? locations.first : null;
+      final doc = await _firestore
+          .collection(_collection)
+          .doc(_currentLocationDoc)
+          .get();
+      return doc.data()?['location'] as String?;
     } catch (e) {
-      throw 'Error al obtener ubicación actual: $e';
+      return null;
     }
   }
 
   // Establecer ubicación actual
   static Future<void> setCurrentLocation(String location) async {
-    // Por ahora, solo verificamos que la ubicación exista
-    final locations = await getAllLocations();
-    if (!locations.contains(location)) {
-      throw 'Ubicación no válida';
+    try {
+      // Primero verificamos que la ubicación sea válida usando ConfigService
+      final validLocations = await ConfigService.instance.getLocations();
+      if (!validLocations.contains(location)) {
+        throw Exception('Ubicación no válida');
+      }
+
+      await _firestore.collection(_collection).doc(_currentLocationDoc).set({
+        'location': location,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw Exception('Error al establecer la ubicación: $e');
     }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'payment_method_screen.dart';
 import '../../widgets/current_location_header.dart';
+import '../../services/config_service.dart';
 
 class SelectItemsScreen extends StatefulWidget {
   final String currentLocation;
@@ -17,15 +18,33 @@ class SelectItemsScreen extends StatefulWidget {
 class _SelectItemsScreenState extends State<SelectItemsScreen> {
   final Map<String, int> selectedItems = {};
   final TextEditingController _otherItemController = TextEditingController();
+  List<String> _availableItems = [];
+  bool _isLoading = true;
 
-  final List<String> predefinedItems = [
-    'Collar',
-    'Pulsera',
-    'Anillo',
-    'Aretes',
-    'San Benito',
-    'Otro',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadItems();
+  }
+
+  Future<void> _loadItems() async {
+    try {
+      final items = await ConfigService.instance.getAvailableItems();
+      setState(() {
+        _availableItems = [...items, 'Otro'];
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al cargar artículos: $e')),
+        );
+      }
+    }
+  }
 
   void _addItem(String item) {
     setState(() {
@@ -100,9 +119,9 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
                         crossAxisSpacing: 10,
                         mainAxisSpacing: 10,
                       ),
-                      itemCount: predefinedItems.length,
+                      itemCount: _availableItems.length,
                       itemBuilder: (context, index) {
-                        final item = predefinedItems[index];
+                        final item = _availableItems[index];
                         final quantity = selectedItems[item] ?? 0;
                         final isSelected = quantity > 0;
                         final isOtherButton = item == 'Otro';
@@ -185,7 +204,7 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
                   ),
                   // Mostrar items personalizados
                   if (selectedItems.keys
-                      .any((item) => !predefinedItems.contains(item))) ...[
+                      .any((item) => !_availableItems.contains(item))) ...[
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8.0),
                       child: Text(
@@ -197,7 +216,7 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
                       spacing: 8,
                       children: selectedItems.entries
                           .where(
-                              (entry) => !predefinedItems.contains(entry.key))
+                              (entry) => !_availableItems.contains(entry.key))
                           .map((entry) => Chip(
                                 label: Text('${entry.key} x${entry.value}'),
                                 onDeleted: () {

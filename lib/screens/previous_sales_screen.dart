@@ -468,11 +468,16 @@ class _PreviousSalesScreenState extends State<PreviousSalesScreen> {
     );
   }
 
-  void _showSaleDetails(Sale sale) {
-    showDialog(
+  void _showSaleDetails(Sale sale) async {
+    final wasUpdated = await showDialog<bool>(
       context: context,
       builder: (context) => SaleInfoDialog(sale: sale),
     );
+
+    // Si la venta fue actualizada, recargamos la lista
+    if (wasUpdated == true) {
+      _loadSales();
+    }
   }
 
   Future<void> _updateSalesForDateRange(DateTimeRange range) async {

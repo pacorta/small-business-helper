@@ -78,4 +78,20 @@ class SaleService {
       throw 'Error al obtener las ventas por fecha: $e';
     }
   }
+
+  static Future<void> updateSale(Sale sale) async {
+    try {
+      await _firestore.collection(_collection).doc(sale.id).update({
+        'timestamp': Timestamp.fromDate(sale.timestamp),
+        'items': sale.items,
+        'paymentMethod': sale.paymentMethod,
+        'price': sale.price,
+        'location': sale.location,
+        'client': sale.client,
+        'comment': sale.comment,
+      });
+    } catch (e) {
+      throw Exception('Error al actualizar la venta: $e');
+    }
+  }
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/location_service.dart';
+import '../services/config_service.dart';
 
 class LocationSelector extends StatefulWidget {
   final String? currentLocation;
@@ -27,16 +27,20 @@ class _LocationSelectorState extends State<LocationSelector> {
 
   Future<void> _loadLocations() async {
     try {
-      final locations = await LocationService.getAllLocations();
+      final locations = await ConfigService.instance.getLocations();
       setState(() {
         _locations = locations;
         _isLoading = false;
       });
     } catch (e) {
-      // Manejar el error apropiadamente
       setState(() {
         _isLoading = false;
       });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al cargar ubicaciones: $e')),
+        );
+      }
     }
   }
 

@@ -62,3 +62,20 @@ Git commit #4.5
 Git commit #5
 
 - Migrated from SharedPreferences to Firebase Firestore for storing sales data both in android and ios.
+
+Git commit #6
+
+- Centralized Configuration with ConfigService
+	•	All dynamic lists (items, payment methods, locations) are now fetched and updated through a single service connected to Firestore.
+- Settings & Configuration Editor UI
+	•	New SettingsScreen allows in-app editing of items, locations, and payment methods.
+	•	New ConfigEditorScreen provides a simple way to add, delete, and reorder list elements.
+- ConfigService uses local caching to reduce reads and improve performance.
+- Added App Drawer
+- Added libraries that make the UI feel more modern.
+
+Bugs:
+- There's a slight twitch when editing a sale.
+
+Observation:
+- If there’s a large gap between recorded sales, average daily earnings may appear inaccurate.
