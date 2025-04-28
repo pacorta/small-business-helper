@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'screens/home_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+//import 'package:firebase_auth/firebase_auth.dart';  //para probar firebase
+import 'services/auth_service.dart';
+import 'screens/login_screen.dart';
+import 'models/user.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
   // Prueba simple de Firebase
+  /*
   try {
     // Intenta acceder a Firebase Auth
     FirebaseAuth auth = FirebaseAuth.instance;
@@ -19,12 +23,12 @@ void main() async {
   } catch (e) {
     print('Error al probar Firebase: $e');
   }
-
-  runApp(const MarthasArtApp());
+*/
+  runApp(const MyApp());
 }
 
-class MarthasArtApp extends StatelessWidget {
-  const MarthasArtApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +51,22 @@ class MarthasArtApp extends StatelessWidget {
           titleLarge: TextStyle(fontSize: 28),
         ),
       ),
-      home: const HomeScreen(),
+      routes: {
+        '/': (context) => StreamBuilder<AppUser?>(
+              stream: AuthService.userStream,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasData) {
+                  return const HomeScreen();
+                }
+                return const LoginScreen();
+              },
+            ),
+        '/login': (context) => const LoginScreen(),
+        '/home': (context) => const HomeScreen(),
+      },
     );
   }
 }

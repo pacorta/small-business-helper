@@ -683,6 +683,8 @@ class _SaleInfoDialogState extends State<SaleInfoDialog> {
       location: _selectedLocation,
       client: _clientController.text.isEmpty ? null : _clientController.text,
       comment: _commentController.text.isEmpty ? null : _commentController.text,
+      sellerEmail: widget.sale.sellerEmail,
+      sellerName: widget.sale.sellerName,
     );
 
     try {

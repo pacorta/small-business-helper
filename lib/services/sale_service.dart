@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/sale.dart';
+import '../services/auth_service.dart';
 
 class SaleService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -32,15 +33,23 @@ class SaleService {
       id: json['id'],
       comment: json['comment'] as String?,
       client: json['client'] as String?,
-      location: json['location'] ??
-          'Ubicación Desconocida', // Valor por defecto para ventas antiguas
+      location: json['location'] ?? 'Ubicación Desconocida',
+      sellerEmail: json['sellerEmail'] ?? 'vendedor@default.com',
+      sellerName: json['sellerName'] ?? 'Vendedor Default',
     );
   }
 
   // Guardar una venta
   static Future<void> saveSale(Sale sale) async {
     try {
-      await _firestore.collection(_collection).add(sale.toFirestore());
+      final currentUser = AuthService.currentUser;
+      final saleData = sale.toFirestore();
+
+      // Agregar información del vendedor
+      saleData['sellerEmail'] = currentUser?.email ?? 'vendedor@default.com';
+      saleData['sellerName'] = currentUser?.name ?? 'Vendedor Default';
+
+      await _firestore.collection(_collection).add(saleData);
     } catch (e) {
       throw 'Error al guardar la venta: $e';
     }
@@ -89,6 +98,8 @@ class SaleService {
         'location': sale.location,
         'client': sale.client,
         'comment': sale.comment,
+        'sellerEmail': sale.sellerEmail,
+        'sellerName': sale.sellerName,
       });
     } catch (e) {
       throw Exception('Error al actualizar la venta: $e');

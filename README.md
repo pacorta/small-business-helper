@@ -24,6 +24,20 @@ The app is built with:
 4. Enable Firestore Database
    - Create a database in test mode
    - Set up your security rules
+(After git commit #6)
+5. Instead of Anonymous Auth, enable Google Auth (In Firebase Console)
+    5.1. If also using Android, pay attention to the warning about making sure to register your app's SHA-1 and SHA-256 fingerprints in the Firebase Console. 
+         This is required for Google Sign-In and other Firebase services to work on Android. 
+         (See the Firebase setup instructions for how to obtain your app's SHA-1/SHA-256.)
+6. Put the new GoogleService-info.plist into its place
+7. Put the new google-services.json
+8. Edit Info.plist in ios to include the 'YOUR-REVERSED-CLIENT-ID' found in 'GoogleService-info.plist'.
+
+I was having some dependency issues, but what helped was to keep everything (google_sign_in, firebase, etc.) up to date, most importantly Flutter, which I upgraded from 3.24.5 to 3.29.3.
+
+Many of the errors that show up are related to anrdoid SDK's, not the app itself. May be easier to test this app on an ios simulator than an android emulator.
+
+If problems arise with android, follow the GRADLE-CONFIGURATION.md, in which I described how I solved some issues.
 
 
 ## Register Sales
@@ -78,4 +92,16 @@ Bugs:
 - There's a slight twitch when editing a sale.
 
 Observation:
-- If there’s a large gap between recorded sales, average daily earnings may appear inaccurate.
+- If there's a large gap between recorded sales, average daily earnings may appear inaccurate.
+
+Git commit #7
+
+- Added Firebase login functionality.
+- The name of the signed-in user is now attached to each sale they make.
+- Added user roles (admin/employees) to profiles.
+- Only admin users can view and edit the list of employees and their roles.
+- Fixed dependency issues for Google Sign-In and Firebase on both Android and iPhone.
+
+Goals for next commit:
+- Add an invitation system so that an admin can invite employees (businessId is assigned to employee upon invitation).
+- Custom sales data export in CSV format to email, WhatsApp, etc.

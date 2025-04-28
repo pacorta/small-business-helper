@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/sale.dart';
 import '../../services/sale_service.dart';
 import '../../widgets/current_location_header.dart';
+import '../../services/auth_service.dart';
 
 class ConfirmSaleScreen extends StatefulWidget {
   final List<String> selectedItems;
@@ -208,6 +209,7 @@ class _ConfirmSaleScreenState extends State<ConfirmSaleScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () async {
+                        final currentUser = AuthService.currentUser;
                         final sale = Sale(
                           timestamp: DateTime.now(),
                           items: widget.selectedItems,
@@ -221,6 +223,9 @@ class _ConfirmSaleScreenState extends State<ConfirmSaleScreen> {
                               ? _clientController.text
                               : null,
                           location: widget.location,
+                          sellerEmail:
+                              currentUser?.email ?? 'vendedor@default.com',
+                          sellerName: currentUser?.name ?? 'Vendedor Default',
                         );
 
                         try {

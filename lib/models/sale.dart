@@ -9,6 +9,8 @@ class Sale {
   final String? comment; // Nuevo campo
   final String? client;
   final String location; // Nueva propiedad
+  final String sellerEmail; // Nuevo campo
+  final String sellerName; // Nuevo campo
 
   Sale({
     required this.timestamp,
@@ -17,6 +19,8 @@ class Sale {
     required this.price,
     required this.id,
     required this.location, // Requerida
+    required this.sellerEmail, // Requerido
+    required this.sellerName, // Requerido
     this.comment, // Opcional
     this.client,
   });
@@ -33,6 +37,10 @@ class Sale {
       location: data['location'],
       comment: data['comment'],
       client: data['client'],
+      sellerEmail: data['sellerEmail'] ??
+          'vendedor@default.com', // Valor default para ventas antiguas
+      sellerName: data['sellerName'] ??
+          'Vendedor Default', // Valor default para ventas antiguas
     );
   }
 
@@ -46,6 +54,8 @@ class Sale {
       'location': location,
       'comment': comment,
       'client': client,
+      'sellerEmail': sellerEmail,
+      'sellerName': sellerName,
       // Campos adicionales para búsquedas
       'searchFields': {
         'year': timestamp.year,

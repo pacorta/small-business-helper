@@ -448,9 +448,23 @@ class _PreviousSalesScreenState extends State<PreviousSalesScreen> {
             ),
             const SizedBox(width: 4),
             Expanded(
-              child: Text(
-                sale.location,
-                style: TextStyle(color: Colors.purple.shade700),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    sale.location,
+                    style: TextStyle(color: Colors.purple.shade700),
+                  ),
+                  Text(
+                    sale.sellerName ??
+                        sale.sellerEmail ??
+                        'Vendedor desconocido',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
             ),
             Text(

@@ -1,0 +1,2 @@
+/Users/pacoortabazan/Desktop/MAJ/marthasart/android/app/.cxx/Debug/1r4r1k4d/x86/CMakeFiles/edit_cache.dir
+/Users/pacoortabazan/Desktop/MAJ/marthasart/android/app/.cxx/Debug/1r4r1k4d/x86/CMakeFiles/rebuild_cache.dir
