@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user.dart';
+import 'package:flutter/material.dart';
+import 'package:rxdart/rxdart.dart';
 
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -9,14 +11,18 @@ class AuthService {
 
   // Stream para mantener el estado de autenticación
   static Stream<AppUser?> get userStream {
-    return _auth.authStateChanges().asyncMap((firebaseUser) async {
-      if (firebaseUser == null) return null;
+    return _auth.authStateChanges().switchMap((firebaseUser) {
+      if (firebaseUser == null) return Stream.value(null);
 
-      final doc =
-          await _firestore.collection('users').doc(firebaseUser.uid).get();
-
-      if (!doc.exists) return null;
-      return AppUser.fromFirestore(doc.data()!);
+      // Escucha el documento de usuario en Firestore en tiempo real
+      return _firestore
+          .collection('users')
+          .doc(firebaseUser.uid)
+          .snapshots()
+          .map((doc) {
+        if (!doc.exists) return null;
+        return AppUser.fromFirestore(doc.data()!);
+      });
     });
   }
 
@@ -59,6 +65,7 @@ class AuthService {
 
       // Verificar si el usuario ya existe
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
+
       if (userDoc.exists) {
         // Si el usuario ya existe, mantener su rol actual
         return AppUser.fromFirestore(userDoc.data()!);
@@ -69,9 +76,13 @@ class AuthService {
         id: user.uid,
         name: user.displayName ?? '',
         email: user.email ?? '',
-        businessId: 'marthas_jewelry', // Por ahora fijo
+        businessId: isFirstUser
+            ? 'marthas_jewelry'
+            : '', // Solo el primero tiene negocio
         photoUrl: user.photoURL,
-        role: isFirstUser ? 'admin' : 'empleado',
+        role: isFirstUser
+            ? 'admin'
+            : '', // Solo el primero es admin, los demás vacío
       );
 
       await _firestore

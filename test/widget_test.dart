@@ -4,7 +4,7 @@ import 'package:marthasart/main.dart';
 
 void main() {
   testWidgets('App should start', (WidgetTester tester) async {
-    await tester.pumpWidget(const MarthasArtApp());
+    await tester.pumpWidget(const MyApp());
     expect(find.text("Martha's Art Jewelry"), findsOneWidget);
   });
 }

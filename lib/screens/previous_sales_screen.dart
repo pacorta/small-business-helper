@@ -7,6 +7,10 @@ import '../services/analytics_service.dart';
 import '../widgets/sales_analytics_card.dart';
 import '../widgets/sale_info_dialog.dart';
 import '../widgets/date_range_selector.dart';
+import 'package:csv/csv.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 class PreviousSalesScreen extends StatefulWidget {
   const PreviousSalesScreen({super.key});
@@ -330,6 +334,11 @@ class _PreviousSalesScreenState extends State<PreviousSalesScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: _loadSales,
           ),
+          IconButton(
+            icon: const Icon(Icons.download),
+            tooltip: 'Exportar a CSV',
+            onPressed: _exportFilteredSalesToCSV,
+          ),
         ],
       ),
       body: isLoading
@@ -518,5 +527,92 @@ class _PreviousSalesScreenState extends State<PreviousSalesScreen> {
       }
       setState(() => isLoading = false);
     }
+  }
+
+  Future<void> _exportFilteredSalesToCSV() async {
+    try {
+      final sales = _getFilteredSales();
+      if (sales.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No hay ventas para exportar.')),
+        );
+        return;
+      }
+
+      // Encabezados del CSV
+      final headers = [
+        'Fecha',
+        'Hora',
+        'Items',
+        'Método de pago',
+        'Precio',
+        'Ubicación',
+        'Vendedor',
+        'Email',
+        'Cliente',
+        'Comentario',
+      ];
+
+      // Datos de las ventas
+      final rows = [
+        headers,
+        ...sales.map((sale) => [
+              // Ajusta los campos según tu modelo
+              sale.timestamp.toLocal().toString().split(' ')[0], // Fecha
+              sale.timestamp
+                  .toLocal()
+                  .toString()
+                  .split(' ')[1]
+                  .substring(0, 5), // Hora
+              sale.items.join(', '),
+              sale.paymentMethod,
+              sale.price.toStringAsFixed(2),
+              sale.location,
+              sale.sellerName,
+              sale.sellerEmail,
+              sale.client ?? '',
+              sale.comment ?? '',
+            ]),
+      ];
+
+      // Generar el CSV
+      final csv = const ListToCsvConverter().convert(rows);
+
+      // Guardar archivo temporal
+      final dir = await getTemporaryDirectory();
+      final fileName = _generateCsvFileName();
+      final path = '${dir.path}/$fileName';
+      final file = File(path);
+      await file.writeAsString(csv);
+
+      // Compartir archivo
+      await Share.shareXFiles([XFile(path)], text: 'Ventas exportadas');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al exportar: $e')),
+      );
+    }
+  }
+
+  String _generateCsvFileName() {
+    final now = DateTime.now();
+    String period = selectedPeriod.replaceAll(' ', '_').toLowerCase();
+
+    // Si es rango personalizado, usa las fechas
+    if (selectedPeriod == 'Rango' && customDateRange != null) {
+      final start = DateFormat('yyyyMMdd').format(customDateRange!.start);
+      final end = DateFormat('yyyyMMdd').format(customDateRange!.end);
+      period = 'rango_${start}_a_${end}';
+    }
+
+    String payment = selectedPaymentMethods.contains('Todos')
+        ? 'todos'
+        : selectedPaymentMethods.join('-').replaceAll(' ', '_').toLowerCase();
+
+    String location = selectedLocations.contains('Todos')
+        ? 'todas'
+        : selectedLocations.join('-').replaceAll(' ', '_').toLowerCase();
+
+    return 'ventas_${period}_${payment}_${location}_${DateFormat('yyyyMMdd_HHmmss').format(now)}.csv';
   }
 }

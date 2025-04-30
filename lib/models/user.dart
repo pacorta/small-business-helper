@@ -6,6 +6,8 @@ class AppUser {
   final String businessId; // Por ahora será fijo, pero preparado para futuro
   final String role;
 
+  bool get needsOnboarding => businessId.isEmpty || role.isEmpty;
+
   AppUser({
     required this.id,
     required this.name,

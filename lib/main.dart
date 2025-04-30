@@ -5,6 +5,7 @@ import 'screens/home_screen.dart';
 import 'services/auth_service.dart';
 import 'screens/login_screen.dart';
 import 'models/user.dart';
+import 'screens/role_selection_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,20 +53,43 @@ class MyApp extends StatelessWidget {
         ),
       ),
       routes: {
-        '/': (context) => StreamBuilder<AppUser?>(
-              stream: AuthService.userStream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasData) {
-                  return const HomeScreen();
-                }
-                return const LoginScreen();
-              },
-            ),
-        '/login': (context) => const LoginScreen(),
+        '/': (context) => const AuthWrapper(),
+        '/role_selection': (context) => const RoleSelectionScreen(),
         '/home': (context) => const HomeScreen(),
+        '/login': (context) => const LoginScreen(),
+      },
+    );
+  }
+}
+
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<AppUser?>(
+      stream: AuthService.userStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        // No autenticado -> Login
+        if (!snapshot.hasData) {
+          return const LoginScreen();
+        }
+
+        final user = snapshot.data!;
+
+        // Usuario nuevo o sin configurar -> Role Selection
+        if (user.needsOnboarding) {
+          return const RoleSelectionScreen();
+        }
+
+        // Usuario configurado -> Home
+        return const HomeScreen();
       },
     );
   }

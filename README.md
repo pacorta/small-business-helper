@@ -63,7 +63,7 @@ Look back at all previous sales
 ![filters](https://github.com/user-attachments/assets/02d85fc1-d879-4fff-bbbe-542cc82c3b6e)
 Filter out for specific sales you want to see, based on date, payment method, or location.
 
-Git commit #4.5
+### Git commit #4.5
 
 - Updated README.md File
 - Made that, by default, every payment method (except cash) has the sales tax option as “on”. 
@@ -73,11 +73,11 @@ Git commit #4.5
 - Re-arranged the previous sales screen for more intuitive UI.
 - Added more date range filters.
 
-Git commit #5
+### Git commit #5
 
 - Migrated from SharedPreferences to Firebase Firestore for storing sales data both in android and ios.
 
-Git commit #6
+### Git commit #6
 
 - Centralized Configuration with ConfigService
 	•	All dynamic lists (items, payment methods, locations) are now fetched and updated through a single service connected to Firestore.
@@ -94,7 +94,7 @@ Bugs:
 Observation:
 - If there's a large gap between recorded sales, average daily earnings may appear inaccurate.
 
-Git commit #7
+### Git commit #7
 
 - Added Firebase login functionality.
 - The name of the signed-in user is now attached to each sale they make.
@@ -105,3 +105,38 @@ Git commit #7
 Goals for next commit:
 - Add an invitation system so that an admin can invite employees (businessId is assigned to employee upon invitation).
 - Custom sales data export in CSV format to email, WhatsApp, etc.
+
+### Git commit #8
+
+- Set up employee invitation system with code generation and expiration
+- Set up onboarding and role-selection system via AuthWrapper
+- Added real-time user state listening using Firestore snapshots
+- Implemented RoleSelectionScreen with invitation code verification (New business admin option is pending)
+- Added support for pending invitations and cancellation (EmployeesScreen)
+- Updated AppUser model to detect onboarding status (needsOnboarding)
+- Added CSV export functionality in PreviousSalesScreen
+- Applied UI/UX refinements to login and employee management screens
+- Refactored main.dart to use AuthWrapper and route onboarding correctly
+
+#### The following section contains a little bit of brainstorm and rambling on:
+Goals to achieve the MVP:
+- Add the possibility to become the admin of a new business.
+  - Add a new dashboard in case someone is the admin of multiple businesses.
+  - Give them the option to switch between businesses easily.
+  - Maybe give the option of combining the earnings of two businesses?
+- Add limits of invitations to new employees to avoid abuse of tokens.
+- Improve the HTML of the email sent in invitation. Also add more info/instructions.
+
+Future improvements:
+- Add different ways to calculate the total of the entire sale. The point of the app is to calculate between sales, so it has to be fast and efficient.
+- Add new sales info filters. By date-ranges, employees (only viewed by admin), etc.
+- Notifications to the owner when the new employee accepts the invitation.
+
+Monetization ideas:
+- Owning multiple businesses could be a paid feature.
+- Multiple employees could also be a paid feature.
+
+#### Notes:
+- In the future, I will need to update the version of Node.js and firebase-functions.
+- The way I handle the idling of new registered users from the login screen going to the role selection screen is not the best, but it works. It creates a new document in firebase temporarily; if the user decides not to do anything, the document will be deleted. The ideal situation is to never create this document, but I will leave it for later.
+- Had to manually add the roles of the App Engine default service account (Cloud Build Service Account, Cloud Functions Developer, Editor). Don't know if this is normal.

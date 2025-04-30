@@ -8,6 +8,7 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF1E1B2E),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -15,14 +16,22 @@ class LoginScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text(
-                "Martha's Art Jewelry",
+                "INTREVENTI",
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: Colors.purple,
+                  color: Color.fromARGB(255, 255, 255, 255),
                 ),
               ),
-              const SizedBox(height: 48),
+              const Text(
+                "Entre venta y venta",
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF6366F1),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              const SizedBox(height: 25),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
@@ -35,13 +44,8 @@ class LoginScreen extends StatelessWidget {
                 ),
                 onPressed: () async {
                   try {
-                    final user = await AuthService.signInWithGoogle();
-                    if (user != null && context.mounted) {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (_) => const HomeScreen()),
-                      );
-                    }
+                    await AuthService.signInWithGoogle();
+                    // El AuthWrapper se encargará de mostrar la pantalla correcta.
                   } catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
